@@ -2,14 +2,21 @@ package com.abhishek.urlshortener.service.impl;
 
 import com.abhishek.urlshortener.dto.*;
 import com.abhishek.urlshortener.entity.ShortenedUrl;
+import com.abhishek.urlshortener.entity.UrlAnalytics;
 import com.abhishek.urlshortener.entity.User;
 import com.abhishek.urlshortener.entity.enums.Status;
 import com.abhishek.urlshortener.exception.ResourceNotFoundException;
+import com.abhishek.urlshortener.repository.UrlAnalyticsRepository;
 import com.abhishek.urlshortener.repository.UrlRepository;
+import com.abhishek.urlshortener.security.JwtService;
+import com.abhishek.urlshortener.service.CountryService;
 import com.abhishek.urlshortener.service.UrlService;
 import com.abhishek.urlshortener.specification.UrlSpecification;
+import com.abhishek.urlshortener.sql.UrlSql;
 import com.abhishek.urlshortener.util.ShortCodeGenerator;
-import com.abhishek.urlshortener.util.Utils;
+import eu.bitwalker.useragentutils.Browser;
+import eu.bitwalker.useragentutils.OperatingSystem;
+import eu.bitwalker.useragentutils.UserAgent;
 import org.apache.commons.lang3.StringUtils;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
@@ -19,11 +26,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.servlet.http.HttpServletRequest;
 import java.time.Duration;
 import java.util.Date;
 import java.util.List;
@@ -36,16 +42,27 @@ public class UrlServiceImpl implements UrlService {
     private static final Logger log = LoggerFactory.getLogger(UrlServiceImpl.class);
     private static final int EXPIRE_DURATION = 7;
     private final UrlRepository urlRepository;
+    private final UrlAnalyticsRepository urlAnalyticsRepository;
     private final ModelMapper modelMapper;
+    private final JwtService jwtService;
+    private final CountryService countryService;
+    private final UrlSql urlSql;
 
-    public UrlServiceImpl(UrlRepository urlRepository, ModelMapper modelMapper) {
+    public UrlServiceImpl(UrlRepository urlRepository,
+                          UrlAnalyticsRepository urlAnalyticsRepository, ModelMapper modelMapper,
+                          JwtService jwtService, CountryService countryService, UrlSql urlSql) {
+
         this.urlRepository = urlRepository;
+        this.urlAnalyticsRepository = urlAnalyticsRepository;
         this.modelMapper = modelMapper;
+        this.jwtService = jwtService;
+        this.countryService = countryService;
+        this.urlSql = urlSql;
     }
 
     @Override
     public UrlResponseDTO createShortUrl(UrlRequestDTO request) {
-        User user = getAuthenticatedUser();
+        User user = jwtService.getAuthenticatedUser();
 
         if (StringUtils.isBlank(request.getOriginalUrl())) {
             throw new RuntimeException("Original URL must not be blank.");
@@ -54,11 +71,12 @@ public class UrlServiceImpl implements UrlService {
         String customAlias = request.getCustomAlias();
         if (StringUtils.isNotBlank(customAlias) && urlRepository
                 .findByCustomAlias(customAlias).isPresent()) {
-            throw new IllegalArgumentException("Custom alias already exists. Choose another or " + "use default.");
+            throw new IllegalArgumentException("Custom alias is not available. Choose another or "
+                    + "use default.");
         }
 
         if (urlRepository.findByOriginalUrlAndUser_Id(request.getOriginalUrl(),
-                getAuthenticatedUser().getId()).isPresent()) {
+                jwtService.getAuthenticatedUser().getId()).isPresent()) {
             throw new IllegalArgumentException("This URL is already shortened.");
         }
 
@@ -89,7 +107,7 @@ public class UrlServiceImpl implements UrlService {
     }
 
     @Override
-    public String getOriginalUrl(String shortCode) {
+    public ShortenedUrl getOriginalUrl(String shortCode) {
         ShortenedUrl url =
                 urlRepository.findByShortCode(shortCode).orElseThrow(() -> new RuntimeException(
                         "Short URL not found"));
@@ -101,35 +119,7 @@ public class UrlServiceImpl implements UrlService {
         url.setClickCount(url.getClickCount() + 1);
         urlRepository.save(url);
 
-        return url.getOriginalUrl();
-    }
-
-    @Override
-    public UrlPaginationResponseDTO getExpiringUrls(int days, int page) {
-        if (!(days == 7 || days == 30 || days == 90)) {
-            throw new IllegalArgumentException("Invalid days value: must be 7, 30, or 90.");
-        }
-
-        User user = getAuthenticatedUser();
-
-        Date now = new Date();
-        Date cutoff = Date.from(now.toInstant().plus(Duration.ofDays(days)));
-
-        Pageable pageable = PageRequest.of(page, 10, Sort.by("expires_at").ascending());
-        Page<ShortenedUrl> urlPage = urlRepository.findExpiringUrl(user.getId(), now, cutoff,
-                pageable);
-
-        List<ExpiringUrlDTO> dtoList = urlPage.getContent().stream().map(url -> {
-            long daysLeft =
-                    Duration.between(now.toInstant(), url.getExpiresAt().toInstant()).toDays();
-
-            ExpiringUrlDTO expiringUrlDTO = modelMapper.map(url, ExpiringUrlDTO.class);
-            expiringUrlDTO.setDaysLeft(daysLeft);
-
-            return expiringUrlDTO;
-        }).toList();
-
-        return new UrlPaginationResponseDTO(dtoList, urlPage);
+        return url;
     }
 
     @Override
@@ -155,25 +145,64 @@ public class UrlServiceImpl implements UrlService {
     }
 
     @Override
-    public UrlResponseDTO regenerateUrl(Long urlId) {
+    public UrlResponseDTO regenerateUrl(Long urlId, String customAlias) {
         ShortenedUrl url = urlRepository.findById(urlId)
                 .orElseThrow(() -> new ResourceNotFoundException("URL not found with ID: " + urlId));
 
         String newShortCode;
-        do {
-            newShortCode = ShortCodeGenerator.generateCode(System.nanoTime());
-        } while (urlRepository.existsByShortCode(newShortCode));
+
+        if (StringUtils.isNotBlank(customAlias) && urlRepository
+                .findByCustomAlias(customAlias).isPresent()) {
+            throw new IllegalArgumentException("Custom alias is not available. Choose another or "
+                    + "use default.");
+        } else if (StringUtils.isNotBlank(customAlias)) {
+            newShortCode = customAlias.trim();
+        } else {
+            do {
+                newShortCode = ShortCodeGenerator.generateCode(System.nanoTime());
+            } while (urlRepository.existsByShortCode(newShortCode));
+        }
 
         url.setShortCode(newShortCode);
         url.setCreatedAt(new Date());
         url.setExpiresAt(Date.from(url.getCreatedAt().toInstant().plus(Duration.ofDays(EXPIRE_DURATION))));
+        url.setClickCount(0L);
         url.setStatus(Status.ACTIVE);
+        urlSql.deleteAnalyticsByUrlId(url.getId());
 
         ShortenedUrl savedUrl = urlRepository.save(url);
         log.info("Successfully regenerated URL with ID: {}, New short code: {}", urlId,
                 newShortCode);
 
         return modelMapper.map(savedUrl, UrlResponseDTO.class);
+    }
+
+    @Override
+    public void logAnalytics(HttpServletRequest request, ShortenedUrl shortenedUrl) {
+        String ipAddress = request.getRemoteAddr();
+        String userAgentString = request.getHeader("User-Agent");
+        String referrer = request.getHeader("Referer");
+
+        UserAgentInfoDTO uaInfo = parseUserAgent(userAgentString);
+
+        UrlAnalytics urlAnalytics = new UrlAnalytics();
+        urlAnalytics.setShortenedUrl(shortenedUrl);
+        urlAnalytics.setClickTime(new Date());
+        urlAnalytics.setIpAddress(ipAddress);
+        urlAnalytics.setCountry(countryService.getCountryFromIp(ipAddress));
+        urlAnalytics.setReferrer(referrer);
+        urlAnalytics.setUserAgent(userAgentString);
+        urlAnalytics.setDeviceType(uaInfo.getDeviceType());
+        urlAnalytics.setBrowser(uaInfo.getBrowser());
+        urlAnalytics.setOperatingSystem(uaInfo.getOperatingSystem());
+        urlAnalytics.setPlatform(uaInfo.getPlatform());
+
+        urlAnalyticsRepository.save(urlAnalytics);
+    }
+
+    @Override
+    public void extendExpiry(Long urlId, int extensionDays) {
+        urlSql.extendExpiry(urlId, extensionDays);
     }
 
     private Sort createSort(String sortField, String sortOrder) {
@@ -190,34 +219,12 @@ public class UrlServiceImpl implements UrlService {
         return Sort.by(direction, sortField);
     }
 
-    private UrlSearchResponseDTO convertToDto(ShortenedUrl url) {
-        UrlSearchResponseDTO dto = new UrlSearchResponseDTO();
-        dto.setId(url.getId());
-        dto.setOriginalUrl(url.getOriginalUrl());
-        dto.setShortCode(url.getShortCode());
-        dto.setStatus(url.getStatus().toString());
-        dto.setClickCount(url.getClickCount());
-        dto.setUserId(url.getUser().getId().toString());
+    private UserAgentInfoDTO parseUserAgent(String userAgentStr) {
+        UserAgent userAgent = UserAgent.parseUserAgentString(userAgentStr);
+        OperatingSystem operatingSystem = userAgent.getOperatingSystem();
+        Browser browser = userAgent.getBrowser();
 
-        String displayFormatter = "MMM dd, yyyy HH:mm:ss";
-        if (url.getCreatedAt() != null) {
-            dto.setCreatedAt(Utils.formatDate(url.getCreatedAt(), displayFormatter));
-        }
-
-        if (url.getExpiresAt() != null) {
-            dto.setExpiresAt(Utils.formatDate(url.getExpiresAt(), displayFormatter));
-        }
-
-        return dto;
-    }
-
-    private User getAuthenticatedUser() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
-            throw new ResourceNotFoundException("Authenticated user not found.");
-        }
-
-        return user;
+        return new UserAgentInfoDTO(operatingSystem.getDeviceType().getName(), browser.getName(),
+                operatingSystem.getName(), operatingSystem.getGroup().getName());
     }
 }

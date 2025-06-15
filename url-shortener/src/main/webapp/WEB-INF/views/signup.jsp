@@ -173,15 +173,10 @@
 					document.getElementById('serverError').style.display = 'none';
 					document.getElementById('successMessage').style.display = 'none';
 
-					const username = document.getElementById('username').value.trim();
 					const email = document.getElementById('email').value.trim();
 					const password = document.getElementById('password').value.trim();
 
 					let isValid = true;
-					if (!username) {
-						document.getElementById('usernameError').style.display = 'block';
-						isValid = false;
-					}
 					if (!email) {
 						document.getElementById('emailError').style.display = 'block';
 						isValid = false;
@@ -197,7 +192,6 @@
 					if (!isValid) return;
 
 					const userData = {
-						username: username,
 						email: email,
 						password: password
 					};

@@ -183,11 +183,10 @@
 			<div class="dashboard-container">
 				<!-- Main Content -->
 				<div class="main-content">
-
 					<div class="profile-card">
 						<h2>Profile Details</h2>
 
-						<!-- Profile Display Section (now at top) -->
+						<!-- Profile Display Section -->
 						<div class="profile-display" id="profileDisplay">
 							<div class="form-grid">
 								<div class="profile-field">
@@ -231,8 +230,8 @@
 
 						<h2>Update Profile</h2>
 
-						<!-- Update Form Section (now below display) -->
-						<form id="profileForm" action="/api/user/updateUser" method="PUT">
+						<!-- Update Form Section -->
+						<form id="profileForm">
 							<!-- Personal Info Section -->
 							<div class="form-section">
 								<h3>Personal Information</h3>
@@ -240,12 +239,11 @@
 									<div class="form-group">
 										<label for="firstName">First Name</label>
 										<input type="text" id="firstName" name="firstName" class="form-control"
-											value="${user.firstName}" required>
+											required>
 									</div>
 									<div class="form-group">
 										<label for="lastName">Last Name</label>
-										<input type="text" id="lastName" name="lastName" class="form-control"
-											value="${user.lastName}" required>
+										<input type="text" id="lastName" name="lastName" class="form-control" required>
 									</div>
 								</div>
 							</div>
@@ -256,18 +254,15 @@
 								<div class="form-grid">
 									<div class="form-group">
 										<label for="birthDate">Date of Birth</label>
-										<input type="date" id="birthDate" name="birthDate" class="form-control"
-											value="${user.birthDate}">
+										<input type="date" id="birthDate" name="birthDate" class="form-control">
 									</div>
 									<div class="form-group">
 										<label for="gender">Gender</label>
 										<select id="gender" name="gender" class="form-control">
 											<option value="">Select Gender</option>
-											<option value="MALE" ${user.gender=='MALE' ? 'selected' : '' }>Male</option>
-											<option value="FEMALE" ${user.gender=='FEMALE' ? 'selected' : '' }>Female
-											</option>
-											<option value="OTHER" ${user.gender=='OTHER' ? 'selected' : '' }>Other
-											</option>
+											<option value="MALE">Male</option>
+											<option value="FEMALE">Female</option>
+											<option value="OTHER">Other</option>
 										</select>
 									</div>
 								</div>
@@ -279,13 +274,11 @@
 								<div class="form-grid">
 									<div class="form-group">
 										<label for="phone">Phone Number</label>
-										<input type="tel" id="phone" name="phone" class="form-control"
-											value="${user.phone}">
+										<input type="tel" id="phone" name="phone" class="form-control">
 									</div>
 									<div class="form-group">
 										<label for="city">City</label>
-										<input type="text" id="city" name="city" class="form-control"
-											value="${user.city}">
+										<input type="text" id="city" name="city" class="form-control">
 									</div>
 								</div>
 							</div>
@@ -297,7 +290,7 @@
 									<label for="country">Country</label>
 									<select id="country" name="country" class="form-control">
 										<option value="">Select Country</option>
-										<!-- Countries will be loaded via our API -->
+										<!-- Countries will be loaded via JavaScript -->
 									</select>
 								</div>
 							</div>
@@ -307,7 +300,7 @@
 								<h3>About You</h3>
 								<div class="form-group form-fullwidth">
 									<label for="bio">Bio</label>
-									<textarea id="bio" name="bio" class="form-control">${user.bio}</textarea>
+									<textarea id="bio" name="bio" class="form-control"></textarea>
 								</div>
 							</div>
 
@@ -320,123 +313,160 @@
 			</div>
 
 			<script>
+				// Format date for display (YYYY-MM-DD to readable format)
+				function formatDisplayDate(dateString) {
+					if (!dateString) return '';
+					const options = { year: 'numeric', month: 'long', day: 'numeric' };
+					return new Date(dateString).toLocaleDateString(undefined, options);
+				}
+
+				// Format date for input field (YYYY-MM-DD)
+				function formatInputDate(dateString) {
+					if (!dateString) return '';
+					const date = new Date(dateString);
+					const isoString = date.toISOString();
+					return isoString.substring(0, 10);
+				}
+
+				// Main initialization
 				document.addEventListener('DOMContentLoaded', async function () {
-                    try {
-                        const response = await fetch('/api/user/profile-page-data', {
-                            headers: {
-                                'Authorization': `Bearer ${getAuthToken()}`
-                            },
-                            credentials: 'include',
-                        });
+					try {
+						// Load profile data
+						const response = await fetch('/api/user/profile-page-data', {
+							headers: {
+								'Content-Type': 'application/json'
+							},
+							credentials: 'include'
+						});
 
-                        if (!response.ok) {
-                            throw new Error('Failed to load profile data');
-                        }
+						if (!response.ok) {
+							const error = await response.json();
+							throw new Error(error.message || 'Failed to load profile data');
+						}
 
-                        const data = await response.json();
-                        const { user, countries } = data;
+						const apiResponse = await response.json();
+						if (apiResponse.status !== 'SUCCESS') {
+							throw new Error(apiResponse.message);
+						}
 
-                        populateDisplaySection(user);
-                        populateFormFields(user);
-                        populateCountriesDropdown(countries, user.country);
+						const { user, countries } = apiResponse.data;
 
-                    } catch (error) {
-                        console.error('Initialization error:', error);
-                        alert('Failed to load profile data. Please refresh the page.');
-                    }
+						// Populate display and form fields
+						populateDisplaySection(user);
+						populateFormFields(user);
+						populateCountriesDropdown(countries, user.country);
 
-                    document.getElementById('profileForm').addEventListener('submit', handleFormSubmit);
-                });
+					} catch (error) {
+						console.error('Initialization error:', error);
+						alert(error.message || 'Failed to load profile data. Please refresh the page.');
+					}
 
-                // Helper functions
-                function populateDisplaySection(user) {
-                    document.getElementById('displayFirstName').textContent = user.firstName;
-                    document.getElementById('displayLastName').textContent = user.lastName;
-                    document.getElementById('displayEmail').textContent = user.email;
-                    document.getElementById('displayBirthDate').textContent = user.birthDate || '';
-                    document.getElementById('displayGender').textContent = user.gender || '';
-                    document.getElementById('displayPhone').textContent = user.phone || '';
-                    document.getElementById('displayCity').textContent = user.city || '';
-                    document.getElementById('displayCountry').textContent = user.countryName || '';
-                    document.getElementById('displayBio').textContent = user.bio || '';
-                }
+					// Set up form submission
+					document.getElementById('profileForm').addEventListener('submit', handleFormSubmit);
+				});
 
-                function populateFormFields(user) {
-                    document.getElementById('firstName').value = user.firstName || '';
-                    document.getElementById('lastName').value = user.lastName || '';
-                    document.getElementById('birthDate').value = user.birthDate || '';
-                    document.getElementById('gender').value = user.gender || '';
-                    document.getElementById('phone').value = user.phone || '';
-                    document.getElementById('city').value = user.city || '';
-                    document.getElementById('bio').value = user.bio || '';
-                }
+				function populateDisplaySection(user) {
+					document.getElementById('displayFirstName').textContent = user.firstName || '';
+					document.getElementById('displayLastName').textContent = user.lastName || '';
+					document.getElementById('displayEmail').textContent = user.email || '';
+					document.getElementById('displayBirthDate').textContent = formatDisplayDate(user.birthDate) || '';
+					document.getElementById('displayGender').textContent = user.gender || '';
+					document.getElementById('displayPhone').textContent = user.phone || '';
+					document.getElementById('displayCity').textContent = user.city || '';
+					document.getElementById('displayCountry').textContent = user.countryName || '';
+					document.getElementById('displayBio').textContent = user.bio || '';
+				}
 
-                function populateCountriesDropdown(countries, userCountryCode) {
-                    const countrySelect = document.getElementById('country');
+				function populateFormFields(user) {
+					document.getElementById('firstName').value = user.firstName || '';
+					document.getElementById('lastName').value = user.lastName || '';
+					document.getElementById('birthDate').value = formatInputDate(user.birthDate) || '';
+					document.getElementById('gender').value = user.gender || '';
+					document.getElementById('phone').value = user.phone || '';
+					document.getElementById('city').value = user.city || '';
+					document.getElementById('bio').value = user.bio || '';
+				}
 
-                    // Sort countries by name
-                    countries.sort((a, b) => a.name.localeCompare(b.name));
+				function populateCountriesDropdown(countries, userCountryCode) {
+					const countrySelect = document.getElementById('country');
 
-                    // Add country options
-                    countries.forEach(country => {
-                        const option = document.createElement('option');
-                        option.value = country.code;
-                        option.textContent = country.name;
-                        if (userCountryCode === country.code) {
-                            option.selected = true;
-                        }
-                        countrySelect.appendChild(option);
-                    });
-                }
+					// Clear existing options except the first one
+					while (countrySelect.options.length > 1) {
+						countrySelect.remove(1);
+					}
 
-                async function handleFormSubmit(e) {
-                    e.preventDefault();
+					// Sort countries by name
+					countries.sort((a, b) => a.name.localeCompare(b.name));
 
-                    const form = e.target;
-                    const submitBtn = form.querySelector('button[type="submit"]');
+					// Add country options
+					countries.forEach(country => {
+						const option = document.createElement('option');
+						option.value = country.code;
+						option.textContent = country.name;
+						if (userCountryCode === country.code) {
+							option.selected = true;
+						}
+						countrySelect.appendChild(option);
+					});
+				}
 
-                    try {
-                        // Show loading state
-                        submitBtn.disabled = true;
-                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+				async function handleFormSubmit(e) {
+					e.preventDefault();
 
-                        const response = await fetch(form.action, {
-                            method: 'PUT',
-                            body: JSON.stringify({
-                                firstName: form.firstName.value,
-                                lastName: form.lastName.value,
-                                birthDate: form.birthDate.value,
-                                gender: form.gender.value,
-                                phone: form.phone.value,
-                                city: form.city.value,
-                                country: form.country.value,
-                                bio: form.bio.value
-                            }),
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            credentials: 'include'
-                        });
+					const form = e.target;
+					const submitBtn = form.querySelector('button[type="submit"]');
 
-                        if (!response.ok) {
-                            const error = await response.json();
-                            throw new Error(error.message || 'Update failed');
-                        }
+					try {
+						// Show loading state
+						submitBtn.disabled = true;
+						submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
 
-                        const updatedUser = await response.json();
+						const response = await fetch('/api/user/profile/update', {
+							method: 'PUT',
+							body: JSON.stringify({
+								firstName: form.firstName.value,
+								lastName: form.lastName.value,
+								birthDate: form.birthDate.value,
+								gender: form.gender.value,
+								phone: form.phone.value,
+								city: form.city.value,
+								country: form.country.value,
+								bio: form.bio.value
+							}),
+							headers: {
+								'Content-Type': 'application/json'
+							},
+							credentials: 'include'
+						});
 
-                        // Refresh displayed data
-                        populateDisplaySection(updatedUser);
-                        alert('Profile updated successfully!');
+						if (!response.ok) {
+							const error = await response.json();
+							throw new Error(error.message || 'Update failed');
+						}
 
-                    } catch (error) {
-                        console.error('Update error:', error);
-                        alert(error.message || 'Failed to update profile. Please try again.');
-                    } finally {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = '<i class="fas fa-save"></i> Update Profile';
-                    }
-                }
+						const apiResponse = await response.json();
+						if (apiResponse.status !== 'SUCCESS') {
+							throw new Error(apiResponse.message);
+						}
+
+						// Update display with new data
+						const updatedUser = apiResponse.data;
+						populateDisplaySection(updatedUser);
+
+						// Update country name in display
+						const countrySelect = document.getElementById('country');
+						const selectedOption = countrySelect.options[countrySelect.selectedIndex];
+						document.getElementById('displayCountry').textContent = selectedOption.text;
+
+						alert('Profile updated successfully!');
+					} catch (error) {
+						console.error('Update error:', error);
+						alert(error.message || 'Failed to update profile. Please try again.');
+					} finally {
+						submitBtn.disabled = false;
+						submitBtn.innerHTML = '<i class="fas fa-save"></i> Update Profile';
+					}
+				}
 			</script>
 		</body>
 

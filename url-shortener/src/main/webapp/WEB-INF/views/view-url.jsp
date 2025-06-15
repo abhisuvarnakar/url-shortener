@@ -173,24 +173,6 @@
 						font-size: 1rem;
 					}
 
-					.per-page-selector {
-						display: flex;
-						align-items: center;
-						gap: 0.5rem;
-					}
-
-					.per-page-selector label {
-						font-weight: 600;
-						color: var(--dark-color);
-					}
-
-					.per-page-selector select {
-						padding: 0.5rem;
-						border: 2px solid var(--border-color);
-						border-radius: 6px;
-						background-color: white;
-					}
-
 					.url-cards {
 						display: grid;
 						grid-template-columns: 1fr;
@@ -285,7 +267,6 @@
 					.url-stats {
 						display: grid;
 						grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-						/* Increased minmax for better spacing */
 						gap: 1rem;
 						margin-top: 1rem;
 						padding-top: 1rem;
@@ -390,23 +371,23 @@
 						margin-bottom: -1px;
 					}
 
-					.copy-btn {
-						color: var(--info-color);
-						border-color: var(--info-color);
-					}
-
-					.copy-btn:hover {
-						background-color: var(--info-color);
-						color: white;
-					}
-
-					.analytics-btn {
+					.extend-btn {
 						color: var(--success-color);
 						border-color: var(--success-color);
 					}
 
-					.analytics-btn:hover {
+					.extend-btn:hover {
 						background-color: var(--success-color);
+						color: white;
+					}
+
+					.analytics-btn {
+						color: var(--info-color);
+						border-color: var(--info-color);
+					}
+
+					.analytics-btn:hover {
+						background-color: var(--info-color);
 						color: white;
 					}
 
@@ -499,20 +480,41 @@
 					}
 
 					.modal-content h2 {
-						margin: 0 0 1rem;
+						margin: 0 0 1.5rem;
 						color: var(--dark-color);
 					}
 
 					.modal-content p {
 						color: var(--muted-color);
-						margin-bottom: 2rem;
+						margin-bottom: 1.5rem;
 						line-height: 1.6;
+					}
+
+					.modal-form-group {
+						margin-bottom: 1.5rem;
+					}
+
+					.modal-form-group label {
+						display: block;
+						margin-bottom: 0.5rem;
+						font-weight: 600;
+						color: var(--dark-color);
+					}
+
+					.modal-form-group input,
+					.modal-form-group select {
+						width: 100%;
+						padding: 0.75rem;
+						border: 1px solid var(--border-color);
+						border-radius: 4px;
+						font-size: 1rem;
 					}
 
 					.modal-actions {
 						display: flex;
 						justify-content: flex-end;
 						gap: 1rem;
+						margin-top: 1.5rem;
 					}
 
 					.modal-btn {
@@ -541,6 +543,26 @@
 
 					.modal-confirm:hover {
 						background-color: #c0392b;
+					}
+
+					/* Custom Alias Input */
+					.custom-alias-input {
+						margin-top: 1rem;
+					}
+
+					.custom-alias-input label {
+						display: block;
+						margin-bottom: 0.5rem;
+						font-weight: 600;
+						color: var(--dark-color);
+					}
+
+					.custom-alias-input input {
+						width: 100%;
+						padding: 0.75rem;
+						border: 1px solid var(--border-color);
+						border-radius: 4px;
+						font-size: 1rem;
 					}
 
 					/* Responsive Design */
@@ -614,7 +636,6 @@
 							<h1>View All URLs</h1>
 						</div>
 
-						<!-- Search and Filter Section -->
 						<!-- Search and Filter Section -->
 						<div class="search-section">
 							<form class="search-form" id="searchForm">
@@ -708,16 +729,6 @@
 									</c:otherwise>
 								</c:choose>
 							</div>
-							<div class="per-page-selector">
-								<label for="urlsPerPage">URLs per page:</label>
-								<select id="urlsPerPage" name="urlsPerPage" onchange="changePerPage()">
-									<option value="10" ${param.urlsPerPage=='10' || empty param.urlsPerPage ? 'selected'
-										: '' }>10</option>
-									<option value="25" ${param.urlsPerPage=='25' ? 'selected' : '' }>25</option>
-									<option value="50" ${param.urlsPerPage=='50' ? 'selected' : '' }>50</option>
-									<option value="100" ${param.urlsPerPage=='100' ? 'selected' : '' }>100</option>
-								</select>
-							</div>
 						</div>
 
 						<!-- URL Cards -->
@@ -786,12 +797,12 @@
 													</div>
 												</div>
 												<div class="url-actions">
-													<button class="action-btn copy-btn" title="Copy Short URL"
-														onclick="copyToClipboard('localhost:8080/url/${url.shortCode}')">
-														<i class="fas fa-copy"></i>
+													<button class="action-btn extend-btn" title="Extend URL Expiry"
+														onclick="extendUrlExpiry('${url.id}')">
+														<i class="fas fa-calendar-plus"></i>
 													</button>
 													<button class="action-btn analytics-btn" title="View Analytics"
-														onclick="window.location.href='/analytics/${url.id}'">
+														onclick="window.open('/url-analytics/${url.id}', '_blank', 'noopener,noreferrer')">
 														<i class="fas fa-chart-bar"></i>
 													</button>
 													<button class="action-btn regenerate-btn" title="Regenerate URL"
@@ -819,11 +830,18 @@
 						<!-- Pagination -->
 						<c:if test="${not empty allUrls and totalPages > 1}">
 							<div class="pagination">
-								<c:if test="${currentPage > 1}">
-									<button class="page-btn" onclick="goToPage(${currentPage - 1})">
-										<i class="fas fa-chevron-left"></i> Previous
-									</button>
-								</c:if>
+								<c:choose>
+									<c:when test="${currentPage > 1}">
+										<button class="page-btn" onclick="goToPage(${currentPage - 1})">
+											<i class="fas fa-chevron-left"></i> Previous
+										</button>
+									</c:when>
+									<c:otherwise>
+										<button class="page-btn" disabled>
+											<i class="fas fa-chevron-left"></i> Previous
+										</button>
+									</c:otherwise>
+								</c:choose>
 
 								<c:forEach begin="1" end="${totalPages}" var="i">
 									<button class="page-btn ${currentPage == i ? 'active' : ''}"
@@ -832,11 +850,18 @@
 									</button>
 								</c:forEach>
 
-								<c:if test="${currentPage < totalPages}">
-									<button class="page-btn" onclick="goToPage(${currentPage + 1})">
-										Next <i class="fas fa-chevron-right"></i>
-									</button>
-								</c:if>
+								<c:choose>
+									<c:when test="${currentPage < totalPages}">
+										<button class="page-btn" onclick="goToPage(${currentPage + 1})">
+											Next <i class="fas fa-chevron-right"></i>
+										</button>
+									</c:when>
+									<c:otherwise>
+										<button class="page-btn" disabled>
+											Next <i class="fas fa-chevron-right"></i>
+										</button>
+									</c:otherwise>
+								</c:choose>
 							</div>
 						</c:if>
 					</div>
@@ -861,8 +886,15 @@
 					<div class="modal-content">
 						<h2><i class="fas fa-sync-alt"
 								style="color: var(--warning-color); margin-right: 0.5rem;"></i>Regenerate Short URL</h2>
-						<p>This will create a new short code for this URL. The old short code will stop working
-							immediately, and you'll need to update any existing links.</p>
+						<p>Generating a new short code will immediately deactivate the existing one.
+							You'll need to update any shared links, and all associated data such as click analytics will
+							be permanently removed.</p>
+
+						<div class="modal-form-group">
+							<label for="customAlias">Custom Alias (optional):</label>
+							<input type="text" id="customAlias" name="customAlias" placeholder="Enter custom alias">
+						</div>
+
 						<div class="modal-actions">
 							<button class="modal-btn modal-cancel" onclick="closeModal()">Cancel</button>
 							<button class="modal-btn" style="background-color: var(--warning-color); color: white;"
@@ -873,40 +905,39 @@
 					</div>
 				</div>
 
+				<!-- Updated Extend URL Expiry Modal -->
+				<div id="extendExpiryModal" class="modal">
+					<div class="modal-content">
+						<h2><i class="fas fa-calendar-plus"
+								style="color: var(--success-color); margin-right: 0.5rem;"></i>Extend URL Expiry</h2>
+						<p>Select how many days you want to extend this URL's expiry date:</p>
+
+						<div class="modal-form-group">
+							<label for="extensionDays">Extension Days:</label>
+							<select id="extensionDays" class="form-select">
+								<option value="7">7 days</option>
+								<option value="14">14 days</option>
+								<option value="30" selected>30 days</option>
+								<option value="60">60 days</option>
+								<option value="90">90 days</option>
+							</select>
+						</div>
+
+						<div class="modal-actions">
+							<button class="modal-btn modal-cancel" onclick="closeModal()">Cancel</button>
+							<button class="modal-btn" style="background-color: var(--success-color); color: white;"
+								onclick="confirmExtendExpiry()">
+								Extend Expiry
+							</button>
+						</div>
+					</div>
+				</div>
+
 				<script>
 					// Enhanced JavaScript code for search operations
 					let currentUrlId = null;
-					let currentPage = 1;
-					let urlsPerPage = 10;
-
-					// Copy text to clipboard with visual feedback
-					function copyToClipboard(text) {
-						navigator.clipboard.writeText('http://' + text)
-							.then(() => {
-								// Visual feedback
-								const copyBtns = document.querySelectorAll('.copy-btn');
-								copyBtns.forEach(btn => {
-									if (btn.getAttribute('onclick').includes(text.split('/')[1])) {
-										const originalIcon = btn.innerHTML;
-										btn.innerHTML = '<i class="fas fa-check"></i>';
-										btn.style.backgroundColor = 'var(--success-color)';
-										btn.style.color = 'white';
-										btn.style.borderColor = 'var(--success-color)';
-
-										setTimeout(() => {
-											btn.innerHTML = originalIcon;
-											btn.style.backgroundColor = '';
-											btn.style.color = '';
-											btn.style.borderColor = '';
-										}, 2000);
-									}
-								});
-							})
-							.catch(err => {
-								console.error('Failed to copy:', err);
-								alert('Failed to copy to clipboard');
-							});
-					}
+					let currentPage = ${ empty param.page ?0: param.page - 1 };
+					let urlsPerPage = ${ empty param.urlsPerPage ?10: param.urlsPerPage };
 
 					function closeModal() {
 						document.querySelectorAll('.modal').forEach(modal => {
@@ -970,7 +1001,6 @@
 							});
 					}
 
-					// Fixed Regenerate URL functions
 					function regenerateUrl(urlId) {
 						console.log("Regenerating URL ID:", urlId);
 
@@ -981,6 +1011,7 @@
 						}
 
 						currentUrlId = urlId;
+						document.getElementById('customAlias').value = ''; // Clear previous input
 						document.getElementById('regenerateModal').style.display = 'flex';
 					}
 
@@ -991,31 +1022,43 @@
 							return;
 						}
 
-						console.log("Attempting to regenerate URL with ID:", currentUrlId);
+						const customAlias = document.getElementById('customAlias').value.trim();
+						const requestBody = {
+							urlId: currentUrlId
+						};
 
-						// Pass URL ID in request body
+						if (customAlias) {
+							requestBody.customAlias = customAlias;
+						}
+
+						console.log("Attempting to regenerate URL with ID:", currentUrlId, "and alias:", customAlias);
+
 						fetch('/api/url/regenerateUrl', {
 							method: 'POST',
 							headers: {
 								'Content-Type': 'application/json'
 							},
 							credentials: 'include',
-							body: JSON.stringify({
-								urlId: currentUrlId
-							})
+							body: JSON.stringify(requestBody)
 						})
 							.then(response => {
 								if (!response.ok) {
-									return response.text().then(text => {
-										throw new Error(text || 'Regeneration failed');
+									return response.json().then(errorData => {
+										// Check if the response has a message
+										const errorMessage = errorData.message || 'Regeneration failed';
+										throw new Error(errorMessage);
 									});
 								}
 								return response.json();
 							})
 							.then(data => {
-								console.log("Regenerate successful:", data);
-								alert("URL regenerated successfully!");
-								performSearch();
+								console.log("Regenerate response:", data);
+								if (data.status === "SUCCESS") {
+									alert(data.message || "URL regenerated successfully!");
+									performSearch();
+								} else {
+									throw new Error(data.message || "Failed to regenerate URL");
+								}
 							})
 							.catch(error => {
 								console.error('Regeneration error:', error);
@@ -1026,22 +1069,81 @@
 							});
 					}
 
+					function extendUrlExpiry(urlId) {
+						console.log("Extending URL expiry for ID:", urlId);
+
+						if (!urlId || urlId === 'null' || urlId === 'undefined') {
+							console.error("Invalid URL ID provided for expiry extension:", urlId);
+							alert("Error: Invalid URL ID. Cannot extend expiry.");
+							return;
+						}
+
+						currentUrlId = urlId;
+						document.getElementById('extendExpiryModal').style.display = 'flex';
+					}
+
+					function confirmExtendExpiry() {
+						if (!currentUrlId || currentUrlId === 'null' || currentUrlId === 'undefined') {
+							console.error("No valid URL ID set for expiry extension:", currentUrlId);
+							alert("Error: No valid URL ID. Cannot extend expiry.");
+							return;
+						}
+
+						const extensionDays = document.getElementById('extensionDays').value;
+
+						console.log("Attempting to extend URL expiry with ID:", currentUrlId, "for", extensionDays, "days");
+
+						fetch('/api/url/extendExpiry', {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json'
+							},
+							credentials: 'include',
+							body: JSON.stringify({
+								urlId: currentUrlId,
+								extensionDays: parseInt(extensionDays)
+							})
+						})
+							.then(response => {
+								if (!response.ok) {
+									return response.json().then(errorData => {
+										const errorMessage = errorData.message || 'Expiry extension failed';
+										throw new Error(errorMessage);
+									});
+								}
+								return response.json();
+							})
+							.then(data => {
+								console.log("Extend expiry response:", data);
+								if (data.status === "SUCCESS") {
+									alert(data.message || "URL expiry extended successfully!");
+									performSearch();
+								} else {
+									throw new Error(data.message || "Failed to extend URL expiry");
+								}
+							})
+							.catch(error => {
+								console.error('Extend expiry error:', error);
+								alert(error.message || 'Failed to extend URL expiry');
+							})
+							.finally(() => {
+								closeModal();
+							});
+					}
+
 					// Search and filter functions
 					function resetSearch() {
 						document.getElementById('searchForm').reset();
 						currentPage = 1;
-						urlsPerPage = 10;
-						document.getElementById('urlsPerPage').value = '10';
 						performSearch();
 					}
 
 					function performSearch() {
-					    console.log("Search started");
+						console.log("Search started");
 						showLoadingIndicator();
 
 						const searchParams = {
 							searchTerm: document.getElementById('searchTerm').value.trim() || undefined,
-							// Convert status string to proper enum format if needed
 							status: document.getElementById('status').value || undefined,
 							fromDate: document.querySelector('input[name="fromDate"]').value || undefined,
 							toDate: document.querySelector('input[name="toDate"]').value || undefined,
@@ -1050,7 +1152,9 @@
 							maxClicks: document.querySelector('input[name="maxClicks"]').value ?
 								parseInt(document.querySelector('input[name="maxClicks"]').value) : undefined,
 							sortField: document.getElementById('sortField').value || undefined,
-							sortOrder: document.getElementById('sortOrder').value || undefined
+							sortOrder: document.getElementById('sortOrder').value || undefined,
+							page: currentPage,
+							size: urlsPerPage
 						};
 
 						// Clean undefined/null values
@@ -1062,7 +1166,7 @@
 
 						console.log("Final search params:", searchParams);
 
-						const searchUrl = `/api/url/search?urlsPerPage=${urlsPerPage}&page=${currentPage}`;
+						const searchUrl = `/api/url/search`;
 
 						fetch(searchUrl, {
 							method: 'POST',
@@ -1081,7 +1185,7 @@
 								return data;
 							})
 							.then(response => {
-								console.log("API Response:", response);
+								console.log("API Response:", JSON.stringify(response, null, 2));
 								if (response.status === "SUCCESS") {
 									updateSearchResults(response.data);
 								} else {
@@ -1206,16 +1310,16 @@
 							'</div>' +
 							'</div>' +
 							'<div class="url-actions">' +
-							'<button class="action-btn copy-btn" onclick="copyToClipboard(\'localhost:8080/url/' + shortCode + '\')">' +
-							'<i class="fas fa-copy"></i>' +
+							'<button class="action-btn extend-btn" title="Extend URL Expiry" onclick="extendUrlExpiry(\'' + urlId + '\')">' +
+							'<i class="fas fa-calendar-plus"></i>' +
 							'</button>' +
-							'<button class="action-btn analytics-btn" onclick="window.location.href=\'/analytics/' + urlId + '\'">' +
+							'<button class="action-btn analytics-btn" title="View Analytics" onclick="window.open(\'/url-analytics/' + urlId + '\', \'_blank\')"> ' +
 							'<i class="fas fa-chart-bar"></i>' +
 							'</button>' +
-							'<button class="action-btn regenerate-btn" onclick="regenerateUrl(\'' + urlId + '\')">' +
+							'<button class="action-btn regenerate-btn" title="Regenerate URL" onclick="regenerateUrl(\'' + urlId + '\')">' +
 							'<i class="fas fa-sync-alt"></i>' +
 							'</button>' +
-							'<button class="action-btn delete-btn" onclick="confirmDelete(\'' + urlId + '\')">' +
+							'<button class="action-btn delete-btn" title="Delete URL" onclick="confirmDelete(\'' + urlId + '\')">' +
 							'<i class="fas fa-trash"></i>' +
 							'</button>' +
 							'</div>' +
@@ -1231,13 +1335,6 @@
 						}
 					}
 
-					// Helper function to format dates
-					function formatDate(dateString) {
-						if (!dateString) return 'N/A';
-						const date = new Date(dateString);
-						return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-					}
-
 					function updatePagination(data) {
 						const paginationContainer = document.querySelector('.pagination');
 						if (!paginationContainer) {
@@ -1248,24 +1345,27 @@
 						if (data.totalPages > 1) {
 							let paginationHtml = '';
 
-							// Previous button
-							if (!data.first) {
-								paginationHtml += '<button class="page-btn" onclick="goToPage(' + data.number + ')">' +
+							// Previous button - show if not on first page
+							if (data.number > 0) {
+								paginationHtml += '<button class="page-btn" onclick="goToPage(' + (data.number - 1) + ')">' +
 									'<i class="fas fa-chevron-left"></i> Previous' +
 									'</button>';
 							}
 
-							// Page numbers
-							for (let i = 1; i <= data.totalPages; i++) {
-								const isActive = (data.number + 1) === i ? 'active' : '';
+							// Page numbers (convert to 1-based for display)
+							const startPage = Math.max(0, data.number - 2);
+							const endPage = Math.min(data.totalPages - 1, data.number + 2);
+
+							for (let i = startPage; i <= endPage; i++) {
+								const isActive = data.number === i ? 'active' : '';
 								paginationHtml += '<button class="page-btn ' + isActive + '" onclick="goToPage(' + i + ')">' +
-									i +
+									(i + 1) + // Display as 1-based
 									'</button>';
 							}
 
-							// Next button
-							if (!data.last) {
-								paginationHtml += '<button class="page-btn" onclick="goToPage(' + (data.number + 2) + ')">' +
+							// Next button - show if not on last page
+							if (data.number < data.totalPages - 1) {
+								paginationHtml += '<button class="page-btn" onclick="goToPage(' + (data.number + 1) + ')">' +
 									'Next <i class="fas fa-chevron-right"></i>' +
 									'</button>';
 							}
@@ -1277,14 +1377,12 @@
 						}
 					}
 
-					function changePerPage() {
-						urlsPerPage = parseInt(document.getElementById('urlsPerPage').value);
-						currentPage = 1; // Reset to first page
-						performSearch();
-					}
-
 					function goToPage(page) {
 						currentPage = page;
+						// Update URL without reloading
+						const url = new URL(window.location);
+						url.searchParams.set('page', page + 1); // Store as 1-based in URL
+						window.history.pushState({}, '', url);
 						performSearch();
 					}
 
@@ -1320,30 +1418,30 @@
 					};
 
 					// Initialize the page
+					// Initialize the page
 					document.addEventListener('DOMContentLoaded', function () {
 						// Initialize current values from URL parameters or defaults
 						const urlParams = new URLSearchParams(window.location.search);
-						currentPage = parseInt(urlParams.get('page')) || 1;
-						urlsPerPage = parseInt(urlParams.get('urlsPerPage')) || 10;
+						currentPage = urlParams.has('page') ? parseInt(urlParams.get('page')) - 1 : 0; // Convert to zero-based
 
-						// Set the urlsPerPage selector
-						document.getElementById('urlsPerPage').value = urlsPerPage;
+						// Set default page size
+						urlsPerPage = 10;
 
 						// Prevent default form submission and use AJAX instead
 						document.getElementById('searchForm').addEventListener('submit', function (e) {
 							e.preventDefault();
-							currentPage = 1; // Reset to first page on new search
+							currentPage = 0; // Reset to first page (zero-based) on new search
 							performSearch();
 						});
 
 						// Auto-submit form when sort options change
 						document.getElementById('sortField').addEventListener('change', function () {
-							currentPage = 1; // Reset to first page
+							currentPage = 0; // Reset to first page (zero-based)
 							performSearch();
 						});
 
 						document.getElementById('sortOrder').addEventListener('change', function () {
-							currentPage = 1; // Reset to first page
+							currentPage = 0; // Reset to first page (zero-based)
 							performSearch();
 						});
 

@@ -3,7 +3,7 @@ package com.abhishek.urlshortener.service;
 import com.abhishek.urlshortener.dto.UserDTO;
 import com.abhishek.urlshortener.entity.User;
 
-public interface UserAuthService {
+public interface AuthService {
 
     User createUser(UserDTO userDTO);
 

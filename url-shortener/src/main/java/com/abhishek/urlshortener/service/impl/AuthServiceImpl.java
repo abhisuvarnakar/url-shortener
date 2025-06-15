@@ -6,7 +6,7 @@ import com.abhishek.urlshortener.exception.ResourceNotFoundException;
 import com.abhishek.urlshortener.exception.UserAlreadyExistsException;
 import com.abhishek.urlshortener.repository.UserRepository;
 import com.abhishek.urlshortener.security.JwtService;
-import com.abhishek.urlshortener.service.UserAuthService;
+import com.abhishek.urlshortener.service.AuthService;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 
 @Service
-public class UserAuthServiceImpl implements UserAuthService {
+public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
@@ -26,9 +26,9 @@ public class UserAuthServiceImpl implements UserAuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
 
-    public UserAuthServiceImpl(UserRepository userRepository, ModelMapper modelMapper,
-                               PasswordEncoder passwordEncoder,
-                               AuthenticationManager authenticationManager, JwtService jwtService) {
+    public AuthServiceImpl(UserRepository userRepository, ModelMapper modelMapper,
+                           PasswordEncoder passwordEncoder,
+                           AuthenticationManager authenticationManager, JwtService jwtService) {
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
         this.passwordEncoder = passwordEncoder;

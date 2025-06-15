@@ -424,10 +424,18 @@
 							<!-- Performance Stats Cards -->
 							<div class="performance-stats">
 								<div class="performance-card">
-									<h3>Top Performing URL</h3>
-									<a href="/${topPerformingUrl.shortUrl}" target="_blank">shortlink.com/${topPerformingUrl.shortUrl}</a>
-									<p>${topPerformingUrl.clicks} clicks</p>
-								</div>
+                                    <h3>Top Performing URL</h3>
+
+                                    <c:choose>
+                                        <c:when test="${empty topPerformingUrl.shortUrl}">
+                                            <p>no link</p>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <a href="/url/${topPerformingUrl.shortUrl}" target="_blank">${topPerformingUrl.shortUrl}</a>
+                                            <p>${topPerformingUrl.clicks} clicks</p>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </div>
 								<div class="performance-card">
 									<h3>Click Rate (24h)</h3>
 									<p class="value">${clickRate24h}%</p>

@@ -5,6 +5,7 @@ public class UrlRequestDTO {
     private Long urlId;
     private String originalUrl;
     private String customAlias;
+    private Integer extensionDays;
 
     public String getOriginalUrl() {
         return originalUrl;
@@ -28,5 +29,13 @@ public class UrlRequestDTO {
 
     public void setUrlId(Long urlId) {
         this.urlId = urlId;
+    }
+
+    public Integer getExtensionDays() {
+        return extensionDays;
+    }
+
+    public void setExtensionDays(Integer extensionDays) {
+        this.extensionDays = extensionDays;
     }
 }

@@ -5,7 +5,7 @@ import com.abhishek.urlshortener.dto.UserDTO;
 import com.abhishek.urlshortener.entity.User;
 import com.abhishek.urlshortener.entity.enums.Status;
 import com.abhishek.urlshortener.exception.UserAlreadyExistsException;
-import com.abhishek.urlshortener.service.UserAuthService;
+import com.abhishek.urlshortener.service.AuthService;
 import com.abhishek.urlshortener.util.Utils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpStatus;
@@ -28,19 +28,15 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final UserAuthService userService;
+    private final AuthService userService;
 
-    public AuthController(UserAuthService userService) {
+    public AuthController(AuthService userService) {
         this.userService = userService;
     }
 
     @PostMapping("/signup")
     public ResponseEntity<Map<String, String>> signup(@RequestBody UserDTO userDto) {
         Map<String, String> response;
-        if (StringUtils.isBlank(userDto.getUsername())) {
-            response = getResponse("Username is required", Status.FAILED.name());
-            return ResponseEntity.badRequest().body(response);
-        }
 
         if (!Utils.isValidEmail(userDto.getEmail())) {
             response = getResponse("Valid email is required", Status.FAILED.name());
@@ -73,7 +69,7 @@ public class AuthController {
             Cookie accessCookie = new Cookie("jwtToken", tokens[0]);
             accessCookie.setHttpOnly(true);
             accessCookie.setPath("/");
-            accessCookie.setMaxAge(10 * 60);
+            accessCookie.setMaxAge(10 * 10 * 60);
             response.addCookie(accessCookie);
 
             Cookie refreshCookie = new Cookie("refreshToken", tokens[1]);

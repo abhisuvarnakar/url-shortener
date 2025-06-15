@@ -1,5 +1,6 @@
 package com.abhishek.urlshortener.entity;
 
+import com.abhishek.urlshortener.entity.enums.Gender;
 import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,10 +19,7 @@ public class User implements UserDetails {
     @SequenceGenerator(name = "user_seq_gen", sequenceName = "seq_user", allocationSize = 1)
     private Long id;
 
-    @Column(nullable = false, length = 25)
-    private String username;
-
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, length = 100)
     private String email;
 
     @Column(nullable = false)
@@ -30,11 +28,33 @@ public class User implements UserDetails {
     @CreationTimestamp
     private Date createdAt;
 
+    @Column(length = 25)
+    private String firstName;
+
+    @Column(length = 25)
+    private String lastName;
+
+    private Date birthDate;
+
+    @Enumerated(value = EnumType.STRING)
+    private Gender gender;
+
+    @Column(length = 10)
+    private String phone;
+
+    @Column(length = 50)
+    private String city;
+
+    @Column(length = 50)
+    private String country;
+
+    @Column(length = 1000)
+    private String bio;
+
     public User() {
     }
 
-    public User(String username, String email, String password) {
-        this.username = username;
+    public User(String email, String password) {
         this.email = email;
         this.password = password;
     }
@@ -49,7 +69,7 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() {
-        return username;
+        return email;
     }
 
     @Override
@@ -70,10 +90,6 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
     }
 
     public String getEmail() {
@@ -103,6 +119,70 @@ public class User implements UserDetails {
 
     public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public Date getBirthDate() {
+        return birthDate;
+    }
+
+    public void setBirthDate(Date birthDate) {
+        this.birthDate = birthDate;
+    }
+
+    public Gender getGender() {
+        return gender;
+    }
+
+    public void setGender(Gender gender) {
+        this.gender = gender;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
     }
 
 }

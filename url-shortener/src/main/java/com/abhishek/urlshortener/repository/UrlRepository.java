@@ -60,4 +60,9 @@ public interface UrlRepository extends JpaRepository<ShortenedUrl, Long>,
     Optional<ShortenedUrl> findTopPerformingUrl(@Param("status") String status,
                                                 @Param("userId") Long userId);
 
+    @Query(value = "SELECT COUNT(*) FROM v_url_analytics" +
+            " WHERE user_id = :userId AND click_time >= NOW() - INTERVAL '24 HOURS'",
+            nativeQuery = true)
+    long getClickRate24h(@Param("userId") Long userId);
+
 }

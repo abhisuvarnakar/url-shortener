@@ -1,10 +1,13 @@
 package com.abhishek.urlshortener.security;
 
 import com.abhishek.urlshortener.entity.User;
+import com.abhishek.urlshortener.exception.ResourceNotFoundException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -50,6 +53,16 @@ public class JwtService {
                 .getPayload();
 
         return Long.parseLong(claims.getSubject());
+    }
+
+    public User getAuthenticatedUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new ResourceNotFoundException("Authenticated user not found.");
+        }
+
+        return user;
     }
 
 }

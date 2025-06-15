@@ -2,6 +2,7 @@ package com.abhishek.urlshortener.security;
 
 import com.abhishek.urlshortener.entity.User;
 import com.abhishek.urlshortener.service.UserService;
+import io.jsonwebtoken.ExpiredJwtException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -37,19 +38,42 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        Long userId = jwtService.getUserIdFromToken(token);
+        try {
+            Long userId = jwtService.getUserIdFromToken(token);
 
-        if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            User user =
-                    userService.getUserById(userId);
-            UsernamePasswordAuthenticationToken authenticationToken =
-                    new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+            if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                User user = userService.getUserById(userId);
+                UsernamePasswordAuthenticationToken authenticationToken =
+                        new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
 
-            authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+            }
+
+            filterChain.doFilter(request, response);
+
+        } catch (ExpiredJwtException e) {
+            handleExpiredToken(response);
+        } catch (Exception e) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT Token");
         }
+    }
 
-        filterChain.doFilter(request, response);
+    private void handleExpiredToken(HttpServletResponse response) throws IOException {
+        SecurityContextHolder.clearContext();
+
+        // Clear cookies
+        Cookie jwtCookie = new Cookie("jwtToken", null);
+        jwtCookie.setMaxAge(0);
+        jwtCookie.setPath("/");
+        response.addCookie(jwtCookie);
+
+        Cookie refreshCookie = new Cookie("refreshToken", null);
+        refreshCookie.setMaxAge(0);
+        refreshCookie.setPath("/");
+        response.addCookie(refreshCookie);
+
+        response.sendRedirect("/logout");
     }
 
     private String getJwtTokenFromCookies(HttpServletRequest request) {

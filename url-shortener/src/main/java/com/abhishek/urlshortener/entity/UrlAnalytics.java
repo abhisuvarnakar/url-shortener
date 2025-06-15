@@ -9,7 +9,8 @@ import java.util.Date;
 @Entity
 @Table(name = "t_url_analytics", indexes = {
         @Index(name = "idx_url_analytics1", columnList = "url_id"),
-        @Index(name = "idx_url_analytics2", columnList = "click_time")
+        @Index(name = "idx_url_analytics2", columnList = "click_time"),
+        @Index(name = "idx_url_analytics3", columnList = "ip_address")
 })
 public class UrlAnalytics {
 
@@ -31,8 +32,8 @@ public class UrlAnalytics {
     @Column(name = "ip_address", length = 45)
     private String ipAddress;
 
-    @Column(name = "country_name", length = 20)
-    private String countryName;
+    @Column(name = "country", length = 50)
+    private String country;
 
     @Column(name = "referrer", columnDefinition = "TEXT")
     private String referrer;
@@ -40,8 +41,17 @@ public class UrlAnalytics {
     @Column(name = "user_agent", columnDefinition = "TEXT")
     private String userAgent;
 
-    @Column(name = "device_type", length = 20)
+    @Column(name = "device_type", length = 30)
     private String deviceType;
+
+    @Column(name = "browser", length = 50)
+    private String browser;
+
+    @Column(name = "os", length = 50)
+    private String operatingSystem;
+
+    @Column(name = "platform", length = 50)
+    private String platform;
 
     public Long getId() {
         return id;
@@ -75,14 +85,6 @@ public class UrlAnalytics {
         this.ipAddress = ipAddress;
     }
 
-    public String getCountryName() {
-        return countryName;
-    }
-
-    public void setCountryName(String countryName) {
-        this.countryName = countryName;
-    }
-
     public String getReferrer() {
         return referrer;
     }
@@ -107,4 +109,35 @@ public class UrlAnalytics {
         this.deviceType = deviceType;
     }
 
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
+    }
+
+    public String getBrowser() {
+        return browser;
+    }
+
+    public void setBrowser(String browser) {
+        this.browser = browser;
+    }
+
+    public String getOperatingSystem() {
+        return operatingSystem;
+    }
+
+    public void setOperatingSystem(String operatingSystem) {
+        this.operatingSystem = operatingSystem;
+    }
+
+    public String getPlatform() {
+        return platform;
+    }
+
+    public void setPlatform(String platform) {
+        this.platform = platform;
+    }
 }
